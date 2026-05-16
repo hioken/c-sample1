@@ -1,15 +1,30 @@
 CC := gcc
-CFLAGS := -Wall -Wextra
+CFLAGS := -Wall -Wextra -MMD -MP
+SRCDIR := src
+OBJDIR := obj
+BINDIR := bin
 
-app: main.o math_tool.o
+# src内のすべての.cファイルを自動検出
+SRCS := $(wildcard $(SRCDIR)/*.c)
+# src/%.c の文字列を obj/%.o に変換
+OBJS := $(patsubst $(SRCDIR)/%.c, $(OBJDIR)/%.o, $(SRCS))
+# .o から依存関係ファイル .d のリストを生成
+DEPS := $(OBJS:.o=.d)
+
+TARGET := $(BINDIR)/app
+
+$(TARGET): $(OBJS)
+	@mkdir -p $(BINDIR)
 	$(CC) $(CFLAGS) -o $@ $^
 
-main.o: main.c math_tool.h
-	$(CC) $(CFLAGS) -c $<
+# パターンルール：src内の任意の.cからobj内の.oを生成する抽象化ルール
+$(OBJDIR)/%.o: $(SRCDIR)/%.c
+	@mkdir -p $(OBJDIR)
+	$(CC) $(CFLAGS) -c -o $@ $<
 
-math_tool.o: math_tool.c math_tool.h
-	$(CC) $(CFLAGS) -c $<
+# コンパイル時に自動生成されたヘッダ依存関係ファイル（.d）を読み込む
+-include $(DEPS)
 
 .PHONY: clean
 clean:
-	rm -f app *.o
+	rm -rf $(OBJDIR) $(BINDIR)
